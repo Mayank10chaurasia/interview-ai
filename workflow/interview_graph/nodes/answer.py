@@ -1,20 +1,18 @@
 from langchain_core.prompts import ChatPromptTemplate
-
 from langchain_core.output_parsers import JsonOutputParser
-
+from workflow.states.candidate import compact_candidate
 from workflow.states.answer_eval import AnswerEvaluation
-from workflow.services.LLM import llm1
+from workflow.services.LLM import llm
+
 prompt = ChatPromptTemplate.from_template("""
-You are an experienced Senior Technical Interviewer.
+You are a strict Senior Technical Interviewer evaluating a candidate's answer.
 
-Your ONLY responsibility is to evaluate the candidate's latest answer.
-
-Do NOT generate another interview question.
+Your ONLY job is to evaluate the latest answer. Do NOT generate questions.
 
 Job Description:
 {jd}
 
-Resume:
+Candidate Resume:
 {resume}
 
 Question Asked:
@@ -23,68 +21,61 @@ Question Asked:
 Candidate Answer:
 {answer}
 
-Conversation History:
+Recent Conversation:
 {history}
 
-Evaluate the answer using these criteria:
+Scoring Rules (be strict):
 
-1. Technical Accuracy (1-10)
-2. Completeness (1-10)
-3. Relevance (1-10)
-4. Communication (1-10)
-5. Confidence (1-10)
+- Technical Accuracy (1-10)
+- Completeness (1-10)
+- Relevance (1-10)
+- Communication (1-10)
+- Confidence (1-10)
 
-Also identify:
+Special handling rules (MUST follow):
 
-- strengths
-- weaknesses
-- missing_information
+1. If the answer is "I don't know", empty, pure filler, or completely unrelated:
+   → technical_accuracy ≤ 2, completeness ≤ 2, relevance ≤ 3, confidence ≤ 3
 
-If important information is missing,
-set follow_up_required = true.
+2. If the answer is mostly unintelligible / transcription garbage:
+   → technical_accuracy = 1, completeness = 1, communication ≤ 3
 
-Recommend one difficulty level:
+3. Never give high scores just because the candidate spoke confidently while saying almost nothing useful.
 
-EASY
-MEDIUM
-HARD
+4. A weak answer is still valid evidence. Do not be generous.
 
-Return ONLY JSON.
+Also provide:
+- strengths (list)
+- weaknesses (list)
+- missing_information (list of specific things still needed)
+- follow_up_required (true only if another attempt is genuinely useful)
+- difficulty_recommendation: EASY | MEDIUM | HARD
+
+Return ONLY valid JSON.
 
 {format_instructions}
 """)
 
-
-
-
 parser = JsonOutputParser(pydantic_object=AnswerEvaluation)
 
-chain = (
-    prompt
-    | llm1
-    | parser
-)
+chain = prompt | llm | parser
 
 
 def evaluate_answer(state):
-
     question = state["history"][-1]["question"]
     answer = state["history"][-1]["answer"]
-    history = state.get("history", [])[-5:]
+    history = state.get("history", [])[-2:]
+    candidate_context = compact_candidate(state["candidate"])
 
-    result = chain.invoke(
-        {
-            "jd": state["jd"],
-            "resume": state["candidate"],
-            "question": question,
-            "answer": answer,
-            "history": history,
-            "format_instructions": parser.get_format_instructions()
-        }
-    )
+    result = chain.invoke({
+        "jd": state["jd"][:3000],
+        "resume": candidate_context,
+        "question": question[:1000],
+        "answer": answer[:2500],
+        "history": history,
+        "format_instructions": parser.get_format_instructions()
+    })
 
-    
-    
     return {
-    "last_evaluation": result,
-}
+        "last_evaluation": result,
+    }

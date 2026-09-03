@@ -1,4 +1,4 @@
-from typing import TypedDict, Annotated, Optional
+from typing import TypedDict, Annotated, Optional, Dict, List
 from operator import add
 
 from workflow.states.candidate import CandidateProfile
@@ -19,17 +19,18 @@ class InterviewState(TypedDict):
     answer: Optional[str]
 
     history: Annotated[list[QAPair], add]
-
     evaluations: Annotated[list[AnswerEvaluation], add]
 
     last_evaluation: Optional[AnswerEvaluation]
 
     current_topic: str
-
     difficulty: str
-
-    manager: InterviewDecision
+    manager: Optional[InterviewDecision]
 
     question_count: int
-
     interview_completed: bool
+
+    # ========== NEW FIELDS ==========
+    topic_attempts: Dict[str, int]              # {"Python": 3, "MongoDB": 2}
+    consecutive_weak_answers: int
+    covered_topics: List[str]

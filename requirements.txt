@@ -32,15 +32,4 @@ tokenizers==0.21.4
 huggingface-hub==0.34.4
 safetensors==0.6.2
 
-kokoro==0.9.4
-SpeechRecognition==3.14.3
 
-phonemizer==3.3.0
-misaki==0.9.4
-segments==2.3.0
-csvw==3.6.0
-Babel==2.17.0
-protobuf==5.29.5
-
-sounddevice==0.5.5
-PyAudio==0.2.14

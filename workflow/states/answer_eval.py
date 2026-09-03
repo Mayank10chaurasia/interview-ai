@@ -16,6 +16,3 @@ class AnswerEvaluation(BaseModel):
     follow_up_required: bool
 
     difficulty_recommendation: str
-
-    summary: str
-    last_evaluation: str

@@ -2,7 +2,10 @@ from workflow.interview_graph.interview_agent import (
     start_interview,
     submit_answer,
 )
+import os
+
 import requests
+from dotenv import load_dotenv
 
 from fastapi import FastAPI, HTTPException, Request
 
@@ -13,6 +16,8 @@ from fastapi.middleware.cors import (
 from workflow.resume_screeining_agent.resume_screening_agent import (
     run_resume_graph,
 )
+
+load_dotenv()
 
 # =========================================================
 # FASTAPI APP
@@ -32,10 +37,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173",
+        ).split(",")
+        if origin.strip()
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -45,7 +52,10 @@ app.add_middleware(
 # EXPRESS BACKEND
 # =========================================================
 
-EXPRESS_API = "http://localhost:5000/api/resume"
+EXPRESS_API = os.getenv(
+    "EXPRESS_API_URL",
+    "http://localhost:5000/api/resume",
+).rstrip("/")
 
 
 # =========================================================
